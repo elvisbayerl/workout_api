@@ -140,3 +140,18 @@ async def delete(id: UUID4, db_session: DatabaseDependency) -> None:
     
     await db_session.delete(atleta)
     await db_session.commit()
+
+
+@router.get("/atletas", response_model=List[AtletaOut])
+def get_atletas(
+    nome: Optional[str] = None,
+    cpf: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
+    stmt = select(Atleta)
+    if nome:
+        stmt = stmt.where(Atleta.nome.ilike(f"%{nome}%"))  # ou == nome
+    if cpf:
+        stmt = stmt.where(Atleta.cpf == cpf)
+    atletas = db.scalars(stmt).all()
+    return atletas
