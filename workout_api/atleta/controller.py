@@ -11,6 +11,13 @@ from workout_api.centro_treinamento.models import CentroTreinamentoModel
 from workout_api.contrib.dependencies import DatabaseDependency
 from sqlalchemy.future import select
 
+from sqlalchemy.exc import IntegrityError
+from fastapi_pagination import Page
+from fastapi_pagination.ext.sqlalchemy import paginate
+from typing import Optional
+from sqlalchemy import selec
+
+
 router = APIRouter()
 
 @router.post(
@@ -142,16 +149,18 @@ async def delete(id: UUID4, db_session: DatabaseDependency) -> None:
     await db_session.commit()
 
 
-@router.get("/atletas", response_model=List[AtletaOut])
-def get_atletas(
-    nome: Optional[str] = None,
-    cpf: Optional[str] = None,
-    db: Session = Depends(get_db),
-):
-    stmt = select(Atleta)
+ @router.get("/", response_model=Page[schemas.AtletaListResponse])
+ def get_atletas(
+     nome: Optional[str] = None,
+     cpf: Optional[str] = None,
+     db: Session = Depends(get_db)
+ ):
+    stmt = select(models.Atleta)
+
     if nome:
-        stmt = stmt.where(Atleta.nome.ilike(f"%{nome}%"))  # ou == nome
+        stmt = stmt.where(models.Atleta.nome.ilike(f"%{nome}%"))
+
     if cpf:
-        stmt = stmt.where(Atleta.cpf == cpf)
-    atletas = db.scalars(stmt).all()
-    return atletas
+        stmt = stmt.where(models.Atleta.cpf == cpf)
+
+    return paginate(db, stmt)
